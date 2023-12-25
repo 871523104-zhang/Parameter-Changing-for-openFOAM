@@ -1,0 +1,456 @@
+import tkinter as tk
+from tkinter.ttk import *
+import re
+import subprocess
+
+############################### 文件按行读取为数组 ###############################
+def read_file(file_name):
+    with open(file_name) as f:
+        content = f.readlines()
+    f.close()
+    return content
+
+############################### 读取数字 ###############################
+# tag=0：纯数字
+# tag=1：科学计数法
+def read_para(content, para_num, tag):
+    if tag == 0:
+        old_para = re.findall(r'\d+\.?\d*', content[para_num])
+    elif tag == 1:
+        old_para = re.findall(r'[0-9]*\.[0-9]+e[+-][0-9]+', content[para_num])
+    return old_para
+
+############################### 更改数字 ###############################
+def change_para(file_path, para_num, old_para, new_para, tag):
+    global new_v
+    global new_v1
+    global new_co2
+    global new_co21
+    file_contents = read_file(file_path)
+    num = 0
+    # tag=1：气相CO2
+    # tag=0：其他（读取一行中的第一个数字）
+    # tag=2：密度（读取一行中的第七个数字）
+    # tag=3：液相CO2
+    with open(file_path, 'w') as f:
+        for line in file_contents:
+            if num == para_num and tag == 1:
+                if para_num == 36:
+                    new_para = new_v
+                else:
+                    new_para = 7 * new_v * new_para / new_co2
+                    new_para = round(new_para, 3)
+                new_para = str(new_para)
+                line = line.replace(old_para[0], new_para)
+            elif num == para_num and tag == 3:
+                if para_num == 36:
+                    new_para = new_v1
+                else:
+                    new_para = 7 * new_v1 * new_para / new_co21
+                    new_para = round(new_para, 3)
+                new_para = str(new_para)
+                line = line.replace(old_para[0], new_para)
+            elif num == para_num and tag == 0:
+                line = line.replace(old_para[0], new_para)
+            elif num == para_num and tag == 2:
+                line = line.replace(old_para[7], new_para)
+            num = num + 1
+            f.write(line)
+    f.close()
+    return
+
+############################### 更改数字总函数 ###############################
+def change_qixiang():
+    # 文件路径
+    global cD_path, U_path, tp_path
+    # 原参数
+    global old_endTime, old_deltaT, old_writeInterval
+    global old_co2, old_n2, old_o2, old_h2o
+    global old_co2nu, old_co2rho, old_n2nu, old_n2rho, old_o2nu, old_o2rho, old_h2onu, old_h2orho
+    # 更改后参数
+    global new_endTime, new_deltaT, new_writeInterval
+    global new_co2, new_n2, new_o2, new_h2o
+    global new_v, new_co2nu, new_co2rho, new_n2nu, new_n2rho, new_o2nu, new_o2rho, new_h2onu, new_h2orho
+    # 从entry读取需要更改的新参数（string）
+    new_endTime = new_endTime.get()
+    new_deltaT = new_deltaT.get()
+    new_writeInterval = new_writeInterval.get()
+    new_co2 = new_co2.get()
+    new_n2 = new_n2.get()
+    new_o2 = new_o2.get()
+    new_h2o = new_h2o.get()
+    new_v = new_v.get()
+        # 比例与速度的计算需要float类型的数字而不是string
+    new_v = float(new_v)
+    new_o2 = float(new_o2)
+    new_n2 = float(new_n2)
+    new_co2 = float(new_co2)
+    new_h2o = float(new_h2o)
+    new_co2nu = new_co2nu.get()
+    new_co2rho = new_co2rho.get()
+    new_n2nu = new_n2nu.get()
+    new_n2rho = new_n2rho.get()
+    new_o2nu = new_o2nu.get()
+    new_o2rho = new_o2rho.get()
+    new_h2onu = new_h2onu.get()
+    new_h2orho = new_h2orho.get()
+    # 更改参数
+    change_para(cD_path, 25, old_endTime, new_endTime, 0)
+    change_para(cD_path, 27, old_deltaT, new_deltaT, 0)
+    change_para(cD_path, 31, old_writeInterval, new_writeInterval, 0)
+    change_para(U_path, 36, old_co2, new_co2, 1)
+    change_para(U_path, 41, old_n2, new_n2, 1)
+    change_para(U_path, 26, old_o2, new_o2, 1)
+    change_para(U_path, 31, old_h2o, new_h2o, 1)
+    change_para(tp_path, 29, old_co2nu, new_co2nu, 0)
+    change_para(tp_path, 30, old_co2rho, new_co2rho, 2)
+    change_para(tp_path, 36, old_n2nu, new_n2nu, 0)
+    change_para(tp_path, 37, old_n2rho, new_n2rho, 2)
+    change_para(tp_path, 43, old_o2nu, new_o2nu, 0)
+    change_para(tp_path, 44, old_o2rho, new_o2rho, 2)
+    change_para(tp_path, 22, old_h2onu, new_h2onu, 0)
+    change_para(tp_path, 23, old_h2orho, new_h2orho, 2)
+
+def change_yexiang():
+    # 文件路径
+    global cD1_path, U1_path, tp1_path
+    # 原参数
+    global old_endTime1, old_deltaT1, old_writeInterval1
+    global old_co21, old_n21, old_o21
+    global old_co2nu1, old_co2rho1, old_n2nu1, old_n2rho1, old_o2nu1, old_o2rho1
+    # 更改后参数
+    global new_endTime1, new_deltaT1, new_writeInterval1
+    global new_co21, new_n21, new_o21
+    global new_v1, new_co2nu1, new_co2rho1, new_n2nu1, new_n2rho1, new_o2nu1, new_o2rho1
+    # 从entry读取需要更改的新参数（string）
+    new_endTime1 = new_endTime1.get()
+    new_deltaT1 = new_deltaT1.get()
+    new_writeInterval1 = new_writeInterval1.get()
+    new_co21 = new_co21.get()
+    new_n21 = new_n21.get()
+    new_o21 = new_o21.get()
+    new_v1 = new_v1.get()
+        # 比例与速度的计算需要float类型的数字而不是string
+    new_v1 = float(new_v1)
+    new_o21 = float(new_o21)
+    new_n21 = float(new_n21)
+    new_co21 = float(new_co21)
+    new_co2nu1 = new_co2nu1.get()
+    new_co2rho1 = new_co2rho1.get()
+    new_n2nu1 = new_n2nu1.get()
+    new_n2rho1 = new_n2rho1.get()
+    new_o2nu1 = new_o2nu1.get()
+    new_o2rho1 = new_o2rho1.get()
+    # 更改参数
+    change_para(cD1_path, 25, old_endTime1, new_endTime1, 0)
+    change_para(cD1_path, 27, old_deltaT1, new_deltaT1, 0)
+    change_para(cD1_path, 31, old_writeInterval1, new_writeInterval1, 0)
+    change_para(U1_path, 37, old_co21, new_co21, 1)
+    change_para(U1_path, 32, old_n21, new_n21, 1)
+    change_para(U1_path, 27, old_o21, new_o21, 1)
+    change_para(tp1_path, 22, old_co2nu1, new_co2nu1, 0)
+    change_para(tp1_path, 23, old_co2rho1, new_co2rho1, 2)
+    change_para(tp1_path, 29, old_n2nu1, new_n2nu1, 0)
+    change_para(tp1_path, 30, old_n2rho1, new_n2rho1, 2)
+    change_para(tp1_path, 36, old_o2nu1, new_o2nu1, 0)
+    change_para(tp1_path, 37, old_o2rho1, new_o2rho1, 2)
+
+############################### multiphaseInterFoam ###############################
+def run_qixiang():
+    change_qixiang()
+    subprocess.check_call('multiphaseInterFoam', cwd='/home/dyfluid/Desktop/OpenFOAM/qixiang')
+    subprocess.check_call('paraFoam', cwd='/home/dyfluid/Desktop/OpenFOAM/qixiang')
+    
+def run_yexiang():
+    change_yexiang()
+    subprocess.check_call('multiphaseInterFoam', cwd='/home/dyfluid/Desktop/OpenFOAM/yexiang')
+    subprocess.check_call('paraFoam', cwd='/home/dyfluid/Desktop/OpenFOAM/yexiang')
+
+
+############################### 文件路径（相对路径） ###############################
+# 气相
+cD_path = '/home/dyfluid/Desktop/OpenFOAM/qixiang/system/controlDict'
+U_path = '/home/dyfluid/Desktop/OpenFOAM/qixiang/0/U'
+tp_path = '/home/dyfluid/Desktop/OpenFOAM/qixiang/constant/transportProperties'
+# 液相
+cD1_path = '/home/dyfluid/Desktop/OpenFOAM/yexiang/system/controlDict'
+U1_path = '/home/dyfluid/Desktop/OpenFOAM/yexiang/0/U'
+tp1_path = '/home/dyfluid/Desktop/OpenFOAM/yexiang/constant/transportProperties'
+
+
+############################### 创建窗口 ###############################
+root = tk.Tk()
+root.title("openFOAM")
+root.geometry("650x425")
+
+############################### 创建logo（可更改） ###############################
+yuri = tk.PhotoImage(file='logo-yuri去底版小.png')
+logo = Label(root, image=yuri)
+logo.place(x=0, y=0)
+
+############################### 选项卡设置 ###############################
+note = Notebook(root, width=650, height=350)
+fr1 = Frame()
+fr2 = Frame()
+note.place(x=0, y=50)
+# 选项卡标签
+note.add(fr1, text='气相')
+note.add(fr2, text='液相')
+
+############################### 读取文件到数组 ###############################
+# 气相
+cD_content = read_file(cD_path)
+U_content = read_file(U_path)
+tp_content = read_file(tp_path)
+# 液相
+cD1_content = read_file(cD1_path)
+U1_content = read_file(U1_path)
+tp1_content = read_file(tp1_path)
+
+############################### 读取原参数 ###############################
+# 气相
+old_endTime = read_para(cD_content, 25, 0)
+old_deltaT = read_para(cD_content, 27, 0)
+old_writeInterval = read_para(cD_content, 31, 0)
+old_co2 = read_para(U_content, 36, 0)
+old_n2 = read_para(U_content, 41, 0)
+old_o2 = read_para(U_content, 26, 0)
+old_h2o = read_para(U_content, 31, 0)
+old_co2nu = read_para(tp_content, 29, 1)
+old_co2rho = read_para(tp_content, 30, 0)
+old_n2nu = read_para(tp_content, 36, 1)
+old_n2rho = read_para(tp_content, 37, 0)
+old_o2nu = read_para(tp_content, 43, 1)
+old_o2rho = read_para(tp_content, 44, 0)
+old_h2onu = read_para(tp_content, 22, 1)
+old_h2orho = read_para(tp_content, 23, 0)
+# 液相
+old_endTime1 = read_para(cD1_content, 25, 0)
+old_deltaT1 = read_para(cD1_content, 27, 0)
+old_writeInterval1 = read_para(cD1_content, 31, 0)
+old_co21 = read_para(U1_content, 37, 0)
+old_n21 = read_para(U1_content, 32, 0)
+old_o21 = read_para(U1_content, 27, 0)
+old_co2nu1 = read_para(tp1_content, 22, 1)
+old_co2rho1 = read_para(tp1_content, 23, 0)
+old_n2nu1 = read_para(tp1_content, 29, 1)
+old_n2rho1 = read_para(tp1_content, 30, 0)
+old_o2nu1 = read_para(tp1_content, 36, 1)
+old_o2rho1 = read_para(tp1_content, 37, 0)
+
+############################### 气相参数设置 ###############################
+# 气相标签：conyrolDict文件
+label_constant = tk.Label(fr1, text='controlDict文件参数设置:')
+label_constant.place(x=10, y=20)
+label_endTimelabel = tk.Label(fr1, text='      endTime:')
+label_endTimelabel.place(x=45, y=55)
+label_deltaTlabel = tk.Label(fr1, text='       deltaT:')
+label_deltaTlabel.place(x=45, y=85)
+label_writeIntervallabel = tk.Label(fr1, text='writeInterval:')
+label_writeIntervallabel.place(x=45, y=115)
+# 新参数类型初始化
+new_endTime = tk.StringVar()
+new_deltaT = tk.StringVar()
+new_writeInterval = tk.StringVar()
+# 各参数输入框初始化（初始内容为旧参数）
+endTime = tk.Entry(fr1, textvariable=new_endTime)
+endTime.place(x=140, y=55)
+endTime.insert(0, old_endTime)
+deltaT = tk.Entry(fr1, textvariable=new_deltaT)
+deltaT.place(x=140, y=85)
+deltaT.insert(0, old_deltaT)
+writeInterval = tk.Entry(fr1, textvariable=new_writeInterval)
+writeInterval.place(x=140, y=115)
+writeInterval.insert(0, old_writeInterval)
+# 气相标签：U文件
+label_0 = tk.Label(fr1, text='U文件参数设置:')
+label_0.place(x=10, y=155)
+label_v = tk.Label(fr1, text='入口速度：')
+label_v.place(x=45, y=190)
+label_co2 = tk.Label(fr1, text='CO2比例：')
+label_co2.place(x=45, y=220)
+label_n2 = tk.Label(fr1, text='N2比例：')
+label_n2.place(x=45, y=250)
+label_o2 = tk.Label(fr1, text='O2比例：')
+label_o2.place(x=45, y=280)
+label_h2o = tk.Label(fr1, text='H2O比例：')
+label_h2o.place(x=45, y=310)
+# 新参数类型初始化
+new_v = tk.StringVar()
+new_co2 = tk.StringVar()
+new_n2 = tk.StringVar()
+new_o2 = tk.StringVar()
+new_h2o = tk.StringVar()
+# 各参数输入框初始化（初始内容为旧参数，v为1）
+v = tk.Entry(fr1, textvariable=new_v)
+v.place(x=140, y=190)
+v.insert(0, '1')
+co2 = tk.Entry(fr1, textvariable=new_co2)
+co2.place(x=140, y=220)
+co2.insert(0, old_co2[0])
+n2 = tk.Entry(fr1, textvariable=new_n2)
+n2.place(x=140, y=250)
+n2.insert(0, old_n2[0])
+o2 = tk.Entry(fr1, textvariable=new_o2)
+o2.place(x=140, y=280)
+o2.insert(0, old_o2[0])
+h2o = tk.Entry(fr1, textvariable=new_h2o)
+h2o.place(x=140, y=310)
+h2o.insert(0, old_h2o[0])
+# 气相标签：transportProperties文件
+label_0 = tk.Label(fr1, text='transportProperties文件参数设置:')
+label_0.place(x=350, y=20)
+label_co2nu = tk.Label(fr1, text='CO2粘度：')
+label_co2nu.place(x=385, y=55)
+label_co2rho = tk.Label(fr1, text='CO2密度：')
+label_co2rho.place(x=385, y=85)
+label_n2nu = tk.Label(fr1, text='N2粘度：')
+label_n2nu.place(x=385, y=115)
+label_n2rho = tk.Label(fr1, text='N2密度：')
+label_n2rho.place(x=385, y=145)
+label_o2nu = tk.Label(fr1, text='O2粘度：')
+label_o2nu.place(x=385, y=175)
+label_o2rho = tk.Label(fr1, text='O2密度：')
+label_o2rho.place(x=385, y=205)
+label_h2onu = tk.Label(fr1, text='H2O粘度：')
+label_h2onu.place(x=385, y=235)
+label_h2orho = tk.Label(fr1, text='H2O密度：')
+label_h2orho.place(x=385, y=265)
+# 新参数类型初始化
+new_co2nu = tk.StringVar()
+new_co2rho = tk.StringVar()
+new_n2nu = tk.StringVar()
+new_n2rho = tk.StringVar()
+new_o2nu = tk.StringVar()
+new_o2rho = tk.StringVar()
+new_h2onu = tk.StringVar()
+new_h2orho = tk.StringVar()
+# 各参数输入框初始化（初始内容为旧参数）
+co2nu = tk.Entry(fr1, textvariable=new_co2nu)
+co2nu.place(x=460, y=55)
+co2nu.insert(0, old_co2nu)
+co2rho = tk.Entry(fr1, textvariable=new_co2rho)
+co2rho.place(x=460, y=85)
+co2rho.insert(0, old_co2rho[7])
+n2nu = tk.Entry(fr1, textvariable=new_n2nu)
+n2nu.place(x=460, y=115)
+n2nu.insert(0, old_n2nu)
+n2rho = tk.Entry(fr1, textvariable=new_n2rho)
+n2rho.place(x=460, y=145)
+n2rho.insert(0, old_n2rho[7])
+o2nu = tk.Entry(fr1, textvariable=new_o2nu)
+o2nu.place(x=460, y=175)
+o2nu.insert(0, old_o2nu)
+o2rho = tk.Entry(fr1, textvariable=new_o2rho)
+o2rho.place(x=460, y=205)
+o2rho.insert(0, old_o2rho[7])
+h2onu = tk.Entry(fr1, textvariable=new_h2onu)
+h2onu.place(x=460, y=235)
+h2onu.insert(0, old_h2onu)
+h2orho = tk.Entry(fr1, textvariable=new_h2orho)
+h2orho.place(x=460, y=265)
+h2orho.insert(0, old_h2orho[7])
+
+############################### 液相参数设置 ###############################
+# 液相标签：conyrolDict文件
+label_constant1 = tk.Label(fr2, text='controlDict文件参数设置:')
+label_constant1.place(x=10, y=20)
+label_endTimelabel1 = tk.Label(fr2, text='      endTime:')
+label_endTimelabel1.place(x=45, y=55)
+label_deltaTlabel1 = tk.Label(fr2, text='       deltaT:')
+label_deltaTlabel1.place(x=45, y=85)
+label_writeIntervallabel1 = tk.Label(fr2, text='writeInterval:')
+label_writeIntervallabel1.place(x=45, y=115)
+# 新参数类型初始化
+new_endTime1 = tk.StringVar()
+new_deltaT1 = tk.StringVar()
+new_writeInterval1 = tk.StringVar()
+# 各参数输入框初始化（初始内容为旧参数）
+endTime1 = tk.Entry(fr2, textvariable=new_endTime1)
+endTime1.place(x=140, y=55)
+endTime1.insert(0, old_endTime1)
+deltaT1 = tk.Entry(fr2, textvariable=new_deltaT1)
+deltaT1.place(x=140, y=85)
+deltaT1.insert(0, old_deltaT1)
+writeInterval1 = tk.Entry(fr2, textvariable=new_writeInterval1)
+writeInterval1.place(x=140, y=115)
+writeInterval1.insert(0, old_writeInterval1)
+# 液相标签：U文件
+label_01 = tk.Label(fr2, text='U文件参数设置:')
+label_01.place(x=10, y=155)
+label_v1 = tk.Label(fr2, text='入口速度：')
+label_v1.place(x=45, y=190)
+label_co21 = tk.Label(fr2, text='CO2比例：')
+label_co21.place(x=45, y=220)
+label_n21 = tk.Label(fr2, text='N2比例：')
+label_n21.place(x=45, y=250)
+label_o21 = tk.Label(fr2, text='O2比例：')
+label_o21.place(x=45, y=280)
+# 新参数类型初始化
+new_v1 = tk.StringVar()
+new_co21 = tk.StringVar()
+new_n21 = tk.StringVar()
+new_o21 = tk.StringVar()
+# 各参数输入框初始化（初始内容为旧参数，v为1）
+v1 = tk.Entry(fr2, textvariable=new_v1)
+v1.place(x=140, y=190)
+v1.insert(0, '1')
+co21 = tk.Entry(fr2, textvariable=new_co21)
+co21.place(x=140, y=220)
+co21.insert(0, old_co21[0])
+n21 = tk.Entry(fr2, textvariable=new_n21)
+n21.place(x=140, y=250)
+n21.insert(0, old_n21[0])
+o21 = tk.Entry(fr2, textvariable=new_o21)
+o21.place(x=140, y=280)
+o21.insert(0, old_o21[0])
+# 液相标签：transportProperties文件
+label_01 = tk.Label(fr2, text='transportProperties文件参数设置:')
+label_01.place(x=350, y=20)
+label_co2nu1 = tk.Label(fr2, text='CO2粘度：')
+label_co2nu1.place(x=385, y=55)
+label_co2rho1 = tk.Label(fr2, text='CO2密度：')
+label_co2rho1.place(x=385, y=85)
+label_n2nu1 = tk.Label(fr2, text='N2粘度：')
+label_n2nu1.place(x=385, y=115)
+label_n2rho1 = tk.Label(fr2, text='N2密度：')
+label_n2rho1.place(x=385, y=145)
+label_o2nu1 = tk.Label(fr2, text='O2粘度：')
+label_o2nu1.place(x=385, y=175)
+label_o2rho1 = tk.Label(fr2, text='O2密度：')
+label_o2rho1.place(x=385, y=205)
+# 新参数类型初始化
+new_co2nu1 = tk.StringVar()
+new_co2rho1 = tk.StringVar()
+new_n2nu1 = tk.StringVar()
+new_n2rho1 = tk.StringVar()
+new_o2nu1 = tk.StringVar()
+new_o2rho1 = tk.StringVar()
+# 各参数输入框初始化（初始内容为旧参数）
+co2nu1 = tk.Entry(fr2, textvariable=new_co2nu1)
+co2nu1.place(x=460, y=55)
+co2nu1.insert(0, old_co2nu1)
+co2rho1 = tk.Entry(fr2, textvariable=new_co2rho1)
+co2rho1.place(x=460, y=85)
+co2rho1.insert(0, old_co2rho1[7])
+n2nu1 = tk.Entry(fr2, textvariable=new_n2nu1)
+n2nu1.place(x=460, y=115)
+n2nu1.insert(0, old_n2nu1)
+n2rho1 = tk.Entry(fr2, textvariable=new_n2rho1)
+n2rho1.place(x=460, y=145)
+n2rho1.insert(0, old_n2rho1[7])
+o2nu1 = tk.Entry(fr2, textvariable=new_o2nu1)
+o2nu1.place(x=460, y=175)
+o2nu1.insert(0, old_o2nu1)
+o2rho1 = tk.Entry(fr2, textvariable=new_o2rho1)
+o2rho1.place(x=460, y=205)
+o2rho1.insert(0, old_o2rho1[7])
+
+
+# ok
+run_button = tk.Button(fr1, text='运行并查看结果', command=run_qixiang)
+run_button.place(x=450, y=300)
+run_button = tk.Button(fr2, text='运行并查看结果', command=run_yexiang)
+run_button.place(x=450, y=270)
+
+root.mainloop()
